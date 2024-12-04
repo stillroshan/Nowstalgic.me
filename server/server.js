@@ -5,7 +5,13 @@ import morgan from 'morgan';
 import { Server } from 'socket.io';
 import { createServer } from 'http';
 import dotenv from 'dotenv';
+import passport from 'passport';
 import connectDB from './config/db.js';
+import './config/passport.js';  // Import passport config
+
+// Route imports
+import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 dotenv.config();
 
@@ -24,13 +30,24 @@ app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(passport.initialize());
 
 // Connect to MongoDB
 connectDB();
 
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+
 // Basic route
 app.get('/', (req, res) => {
   res.send('Nowstalgic.me API is running');
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: err.message || 'Something went wrong!' });
 });
 
 // Socket.IO connection
