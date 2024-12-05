@@ -1,4 +1,5 @@
 import cloudinary from '../config/cloudinary.js';
+import fs from 'fs';
 
 export const uploadToCloudinary = async (file, folder = 'events') => {
   try {
@@ -16,12 +17,19 @@ export const uploadToCloudinary = async (file, folder = 'events') => {
 
     const result = await cloudinary.uploader.upload(file.path, options);
     
+    // Clean up the temporary file
+    fs.unlinkSync(file.path);
+    
     return {
       type: file.mediaType,
       url: result.secure_url,
       publicId: result.public_id
     };
   } catch (error) {
+    // Clean up on error too
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
     throw new Error(`Error uploading to Cloudinary: ${error.message}`);
   }
 }; 

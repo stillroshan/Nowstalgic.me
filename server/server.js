@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import passport from 'passport';
 import connectDB from './config/db.js';
 import './config/passport.js';  // Import passport config
+import rateLimit from 'express-rate-limit';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
@@ -17,6 +18,8 @@ import eventRoutes from './routes/eventRoutes.js';
 
 // Middleware imports
 import { uploadErrorHandler } from './middleware/errorHandler.js';
+
+import { initializeSocket } from './services/socketService.js';
 
 dotenv.config();
 
@@ -31,7 +34,19 @@ const io = new Server(httpServer, {
 
 // Middleware
 app.use(cors());
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "*.cloudinary.com"],
+      connectSrc: ["'self'", process.env.CLIENT_URL]
+    }
+  },
+  crossOriginEmbedderPolicy: true,
+  crossOriginOpenerPolicy: true,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -68,6 +83,17 @@ io.on('connection', (socket) => {
     console.log('User disconnected');
   });
 });
+
+// Add after creating the Socket.IO instance
+initializeSocket(io);
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+
+// Apply to all routes
+app.use(limiter);
 
 const PORT = process.env.PORT || 5000;
 

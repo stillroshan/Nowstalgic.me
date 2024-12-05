@@ -4,6 +4,9 @@ import { catchAsync } from '../utils/catchAsync.js';
 import { uploadToCloudinary } from '../utils/cloudinaryUpload.js';
 import { deleteFromCloudinary } from '../utils/cloudinaryUpload.js';
 import APIFeatures from '../utils/apiFeatures.js';
+import { createNotification } from '../services/notificationService.js';
+import { trackEvent } from '../services/analyticsService.js';
+import { emitEventUpdate } from '../services/socketService.js';
 
 // Create a new event
 export const createEvent = catchAsync(async (req, res) => {
@@ -51,7 +54,7 @@ export const getEvent = catchAsync(async (req, res) => {
         .populate('timeline')
         .populate('tags.user', 'username profilePicture')
         .populate('likes', 'username profilePicture')
-        .populate('comments.user', 'uername profilePicture');
+        .populate('comments.user', 'username profilePicture');
 
     if (!event) {
         return res.status(404).json({
@@ -59,6 +62,14 @@ export const getEvent = catchAsync(async (req, res) => {
             message: 'Event not found'
         });
     }
+
+    // Track view
+    await trackEvent({
+        user: req.user._id,
+        event: event._id,
+        timeline: event.timeline._id,
+        type: 'view'
+    });
 
     res.json({
         status: 'success',
@@ -131,17 +142,16 @@ export const deleteEvent = catchAsync(async (req, res) => {
         });
     }
 
-    // Delete media from Cloudinary
-    const deletionPromises = event.media.map(media => {
-        const publicId = media.url.split('/').pop().split('.')[0];
-        return deleteFromCloudinary(publicId, media.type);
-    });
-
-    try {
-        await Promise.all(deletionPromises);
-    } catch (error) {
-        console.error('Error deleting media from Cloudinary:', error);
-        // Continue with event deletion even if media deletion fails
+    // Delete associated media files
+    if (event.media && event.media.length > 0) {
+        for (const media of event.media) {
+            try {
+                const publicId = media.url.split('/').pop().split('.')[0];
+                await deleteFromCloudinary(publicId, media.type);
+            } catch (error) {
+                console.error(`Failed to delete media: ${error.message}`);
+            }
+        }
     }
 
     // Remove event from timeline
@@ -161,7 +171,8 @@ export const deleteEvent = catchAsync(async (req, res) => {
 
 // Like an event
 export const toggleLike = catchAsync(async (req, res) => {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findById(req.params.id)
+        .populate('timeline');
 
     if (!event) {
         return res.status(404).json({
@@ -170,14 +181,42 @@ export const toggleLike = catchAsync(async (req, res) => {
         });
     }
 
-    const userIndex = event.likes.indexOf(req.user._id);
-    if (userIndex === -1) {
-        event.likes.push(req.user._id);
+    const isLiked = event.likes.includes(req.user._id);
+
+    if (isLiked) {
+        event.likes.pull(req.user._id);
     } else {
-        event.likes.splice(userIndex, 1);
+        event.likes.push(req.user._id);
+
+        // Create notification for event owner
+        if (event.timeline.user.toString() !== req.user._id.toString()) {
+            await createNotification({
+                recipient: event.timeline.user,
+                sender: req.user._id,
+                type: 'like',
+                event: event._id,
+                timeline: event.timeline._id,
+                message: `${req.user.username} liked your event "${event.title}"`
+            });
+        }
     }
 
     await event.save();
+
+    // Track analytics
+    await trackEvent({
+        user: req.user._id,
+        event: event._id,
+        timeline: event.timeline._id,
+        type: 'like'
+    });
+
+    // Emit real-time update
+    emitEventUpdate(event._id, {
+        type: 'like',
+        user: req.user._id,
+        action: isLiked ? 'unlike' : 'like'
+    });
 
     res.json({
         status: 'success',
@@ -187,7 +226,8 @@ export const toggleLike = catchAsync(async (req, res) => {
 
 // Add a Comment
 export const addComment = catchAsync(async (req, res) => {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findById(req.params.id)
+        .populate('timeline');
 
     if (!event) {
         return res.status(404).json({
@@ -196,12 +236,41 @@ export const addComment = catchAsync(async (req, res) => {
         });
     }
 
-    event.comments.puch({
+    const comment = {
         user: req.user._id,
         text: req.body.text
+    };
+
+    event.comments.push(comment);
+    await event.save();
+
+    // Create notification for event owner
+    if (event.timeline.user.toString() !== req.user._id.toString()) {
+        await createNotification({
+            recipient: event.timeline.user,
+            sender: req.user._id,
+            type: 'comment',
+            event: event._id,
+            timeline: event.timeline._id,
+            message: `${req.user.username} commented on your event "${event.title}"`
+        });
+    }
+
+    // Track analytics
+    await trackEvent({
+        user: req.user._id,
+        event: event._id,
+        timeline: event.timeline._id,
+        type: 'comment',
+        metadata: { commentId: comment._id }
     });
 
-    await event.save();
+    // Emit real-time update
+    emitEventUpdate(event._id, {
+        type: 'comment',
+        user: req.user._id,
+        comment: comment
+    });
 
     res.status(201).json({
         status: 'success',

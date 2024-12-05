@@ -19,7 +19,7 @@ const fileFilter = (req, file, cb) => {
         file.mediaType = 'video';
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only images and videos are allowed.'), flase);
+        cb(new Error('Invalid file type. Only images and videos are allowed.'), false);
     }
 };
 

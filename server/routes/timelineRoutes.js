@@ -11,7 +11,6 @@ router.use(protect); // Protect all routes
 router.route('/')
   .get(timelineController.getTimelines)
   .post(
-    protect,
     createTimelineRules,
     validate,
     timelineController.createTimeline

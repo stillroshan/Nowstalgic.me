@@ -2,6 +2,10 @@ import Timeline from '../models/Timeline.js';
 import Event from '../models/Event.js';
 import { catchAsync } from '../utils/catchAsync.js';
 import APIFeatures from '../utils/apiFeatures.js';
+import { createNotification } from '../services/notificationService.js';
+import { trackEvent } from '../services/analyticsService.js';
+import { emitTimelineUpdate } from '../services/socketService.js';
+import { isValidObjectId } from 'mongoose';
 
 // Create a new timeline
 export const createTimeline = catchAsync(async (req, res) => {
@@ -18,6 +22,12 @@ export const createTimeline = catchAsync(async (req, res) => {
 
 // Get a single timeline
 export const getTimeline = catchAsync(async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Invalid timeline ID format'
+        });
+    }
     const timeline = await Timeline.findById(req.params.id)
         .populate('user', 'username profilePicture')
         .populate('events');
@@ -30,12 +40,19 @@ export const getTimeline = catchAsync(async (req, res) => {
     }
 
     // Check visibility permissions
-    if (timeline.visibility === 'private' && timeline.user.toString() !== req.user._id.toSTring()) {
+    if (timeline.visibility === 'private' && timeline.user.toString() !== req.user._id.toString()) {
         return res.status(403).json({
             status: 'error',
             message: 'You do not have permission to view this timeline'
         });
     }
+
+    // Track view
+    await trackEvent({
+        user: req.user._id,
+        timeline: timeline._id,
+        type: 'view'
+    });
 
     res.json({
         status: 'success',
@@ -89,7 +106,8 @@ export const deleteTimeline = catchAsync(async (req, res) => {
 
 // Follow a timeline
 export const followTimeline = catchAsync(async (req, res) => {
-    const timeline = await Timeline.findById(req.params.id);
+    const timeline = await Timeline.findById(req.params.id)
+        .populate('user', 'username');
 
     if (!timeline) {
         return res.status(404).json({
@@ -98,13 +116,39 @@ export const followTimeline = catchAsync(async (req, res) => {
         });
     }
 
-    if (timeline.followers.includes(req.user._id)) {
+    const isFollowing = timeline.followers.includes(req.user._id);
+    
+    if (isFollowing) {
         timeline.followers.pull(req.user._id);
+        await timeline.save();
     } else {
         timeline.followers.push(req.user._id);
+        await timeline.save();
+
+        // Create notification for timeline owner
+        if (timeline.user._id.toString() !== req.user._id.toString()) {
+            await createNotification({
+                recipient: timeline.user._id,
+                sender: req.user._id,
+                type: 'follow',
+                timeline: timeline._id,
+                message: `${req.user.username} started following your timeline "${timeline.title}"`
+            });
+        }
     }
 
-    await timeline.save();
+    // Track analytics
+    await trackEvent({
+        user: req.user._id,
+        timeline: timeline._id,
+        type: isFollowing ? 'unfollow' : 'follow'
+    });
+
+    // Emit real-time update
+    emitTimelineUpdate(timeline._id, {
+        type: isFollowing ? 'unfollow' : 'follow',
+        user: req.user._id
+    });
 
     res.json({
         status: 'success',
