@@ -12,6 +12,11 @@ import './config/passport.js';  // Import passport config
 // Route imports
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import timelineRoutes from './routes/timelineRoutes.js';
+import eventRoutes from './routes/eventRoutes.js';
+
+// Middleware imports
+import { uploadErrorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
 
@@ -38,6 +43,11 @@ connectDB();
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/timelines', timelineRoutes);
+app.use('/api/events', eventRoutes);
+
+// Add after your routes and before the general error handler
+app.use(uploadErrorHandler);
 
 // Basic route
 app.get('/', (req, res) => {
