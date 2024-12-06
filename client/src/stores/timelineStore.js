@@ -54,6 +54,8 @@ const useTimelineStore = create((set) => ({
   },
 
   fetchUserTimelines: async (username) => {
+    if (!username) return;
+    
     set({ isLoading: true, error: null })
     try {
       const response = await axios.get(`/api/users/${username}/timelines`)

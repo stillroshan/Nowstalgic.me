@@ -13,8 +13,12 @@ const Profile = () => {
   const isOwnProfile = !username || username === currentUser?.username
 
   useEffect(() => {
-    fetchUserTimelines(username)
-  }, [username, fetchUserTimelines])
+    if (isOwnProfile) {
+      fetchUserTimelines(currentUser?.username)
+    } else {
+      fetchUserTimelines(username)
+    }
+  }, [username, fetchUserTimelines, isOwnProfile, currentUser?.username])
 
   return (
     <div className="max-w-4xl mx-auto">

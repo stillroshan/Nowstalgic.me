@@ -1,39 +1,96 @@
+import { Server } from 'socket.io';
 let io;
 
-export const initializeSocket = (socketIO) => {
-  io = socketIO;
-  
-  io.on('connection', (socket) => {
-    console.log('A user connected');
+// Store user socket mappings
+const userSockets = new Map();
 
-    // Join user's personal room for notifications
-    socket.on('join', (userId) => {
-      socket.join(userId);
-      console.log(`User ${userId} joined their personal room`);
+export const initializeSocket = (server) => {
+  io = new Server(server, {
+    cors: {
+      origin: process.env.CLIENT_URL,
+      methods: ['GET', 'POST']
+    }
+  });
+
+  io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+
+    // Handle user authentication
+    socket.on('authenticate', (userId) => {
+      userSockets.set(userId, socket.id);
+      socket.userId = userId;
+      socket.join(userId); // Join personal room
     });
 
+    // Handle timeline room joining
+    socket.on('joinTimeline', (timelineId) => {
+      socket.join(`timeline:${timelineId}`);
+    });
+
+    // Handle timeline room leaving
+    socket.on('leaveTimeline', (timelineId) => {
+      socket.leave(`timeline:${timelineId}`);
+    });
+
+    // Handle disconnect
     socket.on('disconnect', () => {
-      console.log('User disconnected');
-      // Clean up any room subscriptions
-      socket.rooms.forEach(room => socket.leave(room));
+      if (socket.userId) {
+        userSockets.delete(socket.userId);
+      }
+    });
+
+    // Handle typing events
+    socket.on('typing', (recipientId) => {
+      io.to(recipientId).emit('userTyping', socket.userId);
+    });
+
+    socket.on('stopTyping', (recipientId) => {
+      io.to(recipientId).emit('userStoppedTyping', socket.userId);
     });
   });
+
+  return io;
 };
 
-export const emitNotification = (userId, notification) => {
+// Emit new message
+export const emitNewMessage = (recipientId, message) => {
   if (io) {
-    io.to(userId.toString()).emit('notification', notification);
+    io.to(recipientId.toString()).emit('newMessage', message);
   }
 };
 
+// Emit message read status
+export const emitMessageRead = (recipientId, readerId) => {
+  if (io) {
+    io.to(recipientId.toString()).emit('messagesRead', readerId);
+  }
+};
+
+// Add the missing emitNotification function
+export const emitNotification = (recipientId, notification) => {
+  if (io) {
+    io.to(recipientId.toString()).emit('notification', notification);
+  }
+};
+
+// Add the missing emitTimelineUpdate function
 export const emitTimelineUpdate = (timelineId, update) => {
   if (io) {
-    io.emit(`timeline:${timelineId}`, update);
+    io.to(`timeline:${timelineId}`).emit('timelineUpdate', update);
   }
 };
 
-export const emitEventUpdate = (eventId, update) => {
+// Add the missing emitEventUpdate function
+export const emitEventUpdate = (timelineId, update) => {
   if (io) {
-    io.emit(`event:${eventId}`, update);
+    io.to(`timeline:${timelineId}`).emit('eventUpdate', update);
   }
+};
+
+// Get socket instance
+export const getIO = () => {
+  if (!io) {
+    throw new Error('Socket.io not initialized');
+  }
+  return io;
 }; 

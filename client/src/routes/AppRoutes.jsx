@@ -6,6 +6,7 @@ import Profile from '../pages/Profile'
 import NotFound from '../pages/NotFound'
 import PrivateRoute from '../components/PrivateRoute'
 import AuthCallback from '../pages/AuthCallback'
+import Messages from '../pages/Messages'
 
 const AppRoutes = () => {
   return (
@@ -26,6 +27,17 @@ const AppRoutes = () => {
       } />
 
       <Route path="/auth/callback" element={<AuthCallback />} />
+
+      <Route path="/messages" element={
+        <PrivateRoute>
+          <Messages />
+        </PrivateRoute>
+      } />
+      <Route path="/messages/:userId" element={
+        <PrivateRoute>
+          <Messages />
+        </PrivateRoute>
+      } />
 
       <Route path="*" element={<NotFound />} />
     </Routes>
