@@ -1,48 +1,41 @@
+// -------------------- Imports --------------------
 import express from 'express';
 import cors from 'cors';
+import dotenv from 'dotenv';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import rateLimit from 'express-rate-limit';
+import session from 'express-session';
 import { Server } from 'socket.io';
 import { createServer } from 'http';
-import dotenv from 'dotenv';
-import passport from 'passport';
-import connectDB from './config/db.js';
-import './config/passport.js';  // Import passport config
-import rateLimit from 'express-rate-limit';
 
-// Route imports
+
+// Local imports
+import connectDB from './config/db.js';
+import  passport from './config/passport.js';
+import { initializeSocket } from './services/socketService.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import timelineRoutes from './routes/timelineRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
-import notificationRoutes from './routes/notificationRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
-
-// Middleware imports
+import notificationRoutes from './routes/notificationRoutes.js';
 import { uploadErrorHandler } from './middleware/errorHandler.js';
 
-import { initializeSocket } from './services/socketService.js';
 
+// -------------------- Configuration --------------------
+// Load environment variables
 dotenv.config();
 
-const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
-  }
-});
+// Initialize express
+const app = express()
 
-// Middleware
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// Connect to MongoDB
+connectDB();
+
+
+// -------------------- Middleware --------------------
+// Security and performance
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -56,34 +49,73 @@ app.use(helmet({
   crossOriginOpenerPolicy: true,
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Rate Limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+
+// Authentication middleware
 app.use(passport.initialize());
+app.use(passport.session())
 
-// Connect to MongoDB
-connectDB();
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/timelines', timelineRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/messages', messageRoutes);
-
-// Add after your routes and before the general error handler
-app.use(uploadErrorHandler);
-
-// Basic route
+// -------------------- Routes --------------------
+// Base API route
 app.get('/', (req, res) => {
   res.send('Nowstalgic.me API is running');
 });
 
-// Error handling middleware
+// Register routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/timelines', timelineRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
+
+// Upload-specific error handler
+app.use(uploadErrorHandler);
+
+// General error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: err.message || 'Something went wrong!' });
+});
+
+
+// -------------------- Socket.IO --------------------
+// Create HTTP server
+const httpServer = createServer(app);
+
+// Socket.IO
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }
 });
 
 // Socket.IO connection
@@ -95,19 +127,12 @@ io.on('connection', (socket) => {
   });
 });
 
-// Add after creating the Socket.IO instance
+// Initialize socket services
 initializeSocket(io);
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
 
-// Apply to all routes
-app.use(limiter);
-
+// -------------------- Start Server --------------------
 const PORT = process.env.PORT || 5000;
-
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

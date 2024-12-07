@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useTimelineStore from '../stores/timelineStore'
+import { FaPlus } from 'react-icons/fa'
 
 const Create = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    visibility: 'public'
+    visibility: 'public',
+    tags: []
   })
   
   const { createTimeline, isLoading, error } = useTimelineStore()
@@ -16,13 +18,38 @@ const Create = () => {
     e.preventDefault()
     const timeline = await createTimeline(formData)
     if (timeline) {
-      navigate(`/timeline/${timeline._id}`)
+      navigate(`/timeline/${timeline._id}/create-event`)
     }
+  }
+
+  const handleTagInput = (e) => {
+    if (e.key === 'Enter' && e.target.value.trim()) {
+      e.preventDefault()
+      const newTag = e.target.value.trim()
+      if (!formData.tags.includes(newTag)) {
+        setFormData({
+          ...formData,
+          tags: [...formData.tags, newTag]
+        })
+      }
+      e.target.value = ''
+    }
+  }
+
+  const removeTag = (tagToRemove) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter(tag => tag !== tagToRemove)
+    })
   }
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-6">Create New Timeline</h2>
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold">Create Your Timeline</h2>
+        <p className="text-base-content/70">Start documenting your journey by creating a timeline.</p>
+      </div>
+
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           {error && (
@@ -31,16 +58,16 @@ const Create = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="form-control">
               <label className="label">
-                <span className="label-text">Title</span>
+                <span className="label-text">Timeline Title</span>
               </label>
               <input 
                 type="text" 
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                placeholder="Enter timeline title" 
+                placeholder="e.g., My College Journey, Career Milestones" 
                 className="input input-bordered w-full" 
                 required
               />
@@ -54,8 +81,37 @@ const Create = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
                 className="textarea textarea-bordered h-24" 
-                placeholder="Enter timeline description"
+                placeholder="What's this timeline about?"
               ></textarea>
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Tags</span>
+              </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {formData.tags.map((tag, index) => (
+                  <span 
+                    key={index} 
+                    className="badge badge-primary gap-2"
+                  >
+                    {tag}
+                    <button 
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="btn btn-ghost btn-xs"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <input 
+                type="text"
+                placeholder="Add tags (press Enter)"
+                onKeyDown={handleTagInput}
+                className="input input-bordered w-full"
+              />
             </div>
 
             <div className="form-control">
@@ -67,9 +123,9 @@ const Create = () => {
                 onChange={(e) => setFormData({...formData, visibility: e.target.value})}
                 className="select select-bordered w-full"
               >
-                <option value="public">Public</option>
-                <option value="private">Private</option>
-                <option value="followers">Followers Only</option>
+                <option value="public">Public - Anyone can view</option>
+                <option value="followers">Followers Only - Only your followers can view</option>
+                <option value="private">Private - Only you can view</option>
               </select>
             </div>
 
@@ -78,7 +134,8 @@ const Create = () => {
               className={`btn btn-primary w-full ${isLoading ? 'loading' : ''}`}
               disabled={isLoading}
             >
-              Create Timeline
+              <FaPlus className="mr-2" />
+              Create Timeline & Add First Event
             </button>
           </form>
         </div>

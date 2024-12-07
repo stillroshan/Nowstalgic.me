@@ -68,11 +68,11 @@ const userSchema = new mongoose.Schema({
 
 // Virtual fields for counts
 userSchema.virtual('followersCount').get(function() {
-  return this.followers.length;
+  return this.followers ? this.followers.length : 0;
 });
 
 userSchema.virtual('followingCount').get(function() {
-  return this.following.length;
+  return this.following ? this.following.length : 0;
 });
 
 userSchema.virtual('timelinesCount', {
