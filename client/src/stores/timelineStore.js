@@ -53,12 +53,12 @@ const useTimelineStore = create((set) => ({
     }
   },
 
-  fetchUserTimelines: async (username) => {
-    if (!username) return;
+  fetchUserTimelines: async (userId) => {
+    if (!userId) return;
     
     set({ isLoading: true, error: null })
     try {
-      const response = await axios.get(`/api/users/${username}/timelines`)
+      const response = await axios.get(`/api/timelines/user/${userId}`)
       set({ 
         timelines: response.data.data,
         isLoading: false 

@@ -15,12 +15,13 @@ const Profile = () => {
   const isOwnProfile = !username || username === currentUser?.username
 
   useEffect(() => {
-    if (isOwnProfile) {
-      fetchUserTimelines(currentUser?.username)
+    if (!username) {
+      fetchUserTimelines(currentUser?._id)
     } else {
-      fetchUserTimelines(username)
+      const userId = currentUser?._id
+      fetchUserTimelines(userId)
     }
-  }, [username, fetchUserTimelines, isOwnProfile, currentUser?.username])
+  }, [username, fetchUserTimelines, currentUser])
 
   const renderTimelines = () => (
     <div className="grid grid-cols-1 gap-4">
