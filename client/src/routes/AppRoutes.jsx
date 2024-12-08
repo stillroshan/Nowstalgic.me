@@ -31,7 +31,7 @@ const AppRoutes = () => {
         </PrivateRoute>
       } />
 
-      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/auth/success" element={<AuthCallback />} />
 
       <Route path="/messages" element={
         <PrivateRoute>

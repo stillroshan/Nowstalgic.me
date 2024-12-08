@@ -5,17 +5,19 @@ import useAuthStore from '../stores/authStore'
 const AuthCallback = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { setToken } = useAuthStore()
+  const { setToken, initialize } = useAuthStore()
 
   useEffect(() => {
     const token = searchParams.get('token')
     if (token) {
       setToken(token)
-      navigate('/', { replace: true })
+      initialize().then(() => {
+        navigate('/', { replace: true })
+      })
     } else {
       navigate('/login', { replace: true })
     }
-  }, [searchParams, navigate, setToken])
+  }, [searchParams, navigate, setToken, initialize])
 
   return (
     <div className="min-h-screen flex items-center justify-center">
