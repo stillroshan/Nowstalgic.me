@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import axios from 'axios'
 
-const useTimelineStore = create((set) => ({
+const useTimelineStore = create((set, get) => ({
   timelines: [],
   currentTimeline: null,
   isLoading: false,
@@ -39,16 +39,26 @@ const useTimelineStore = create((set) => ({
   },
 
   fetchTimelineById: async (id) => {
+    const state = get()
+    if (state.currentTimeline?._id === id) return state.currentTimeline
+    
     set({ isLoading: true, error: null })
     try {
       const response = await axios.get(`/api/timelines/${id}`)
       set({ currentTimeline: response.data.data, isLoading: false })
       return response.data.data
     } catch (error) {
-      set({ 
-        error: error.response?.data?.message || 'Failed to fetch timeline', 
-        isLoading: false 
-      })
+      if (error.response?.status === 429) {
+        set({ 
+          error: 'Too many requests. Please wait a moment before trying again.',
+          isLoading: false 
+        })
+      } else {
+        set({ 
+          error: error.response?.data?.message || 'Failed to fetch timeline',
+          isLoading: false 
+        })
+      }
       return null
     }
   },
@@ -69,6 +79,10 @@ const useTimelineStore = create((set) => ({
         isLoading: false 
       })
     }
+  },
+
+  clearCurrentTimeline: () => {
+    set({ currentTimeline: null })
   }
 }))
 

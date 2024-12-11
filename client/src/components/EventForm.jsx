@@ -209,6 +209,26 @@ const EventForm = ({ timelineId }) => {
             </div>
           </div>
 
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Emotional Value</span>
+              <span className="label-text-alt">{formData.happiness || 0}</span>
+            </label>
+            <input
+              type="range"
+              min="-100"
+              max="100"
+              value={formData.happiness || 0}
+              onChange={(e) => setFormData({...formData, happiness: parseInt(e.target.value)})}
+              className="range range-primary"
+            />
+            <div className="flex justify-between text-xs px-2">
+              <span>Very Sad</span>
+              <span>Neutral</span>
+              <span>Very Happy</span>
+            </div>
+          </div>
+
           <button
             type="submit"
             className={`btn btn-primary w-full ${isLoading ? 'loading' : ''}`}

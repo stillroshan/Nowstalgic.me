@@ -39,6 +39,12 @@ const eventSchema = new mongoose.Schema({
         enum: ['achievement', 'birthday', 'career', 'personal', 'relationship', 'travel', 'other'],
         required: true
     },
+    happiness: {
+        type: Number,
+        min: -100,
+        max: 100,
+        default: 0
+    },
     tags: [{
         user: {
             type: mongoose.Schema.Types.ObjectId,

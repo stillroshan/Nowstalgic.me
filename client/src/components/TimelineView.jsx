@@ -6,6 +6,7 @@ import useTimelineStore from '../stores/timelineStore'
 import useAuthStore from '../stores/authStore'
 import { formatDistanceToNow } from 'date-fns'
 import { FaHeart, FaComment, FaShare } from 'react-icons/fa'
+import TimelineWave from './TimelineWave'
 
 const TimelineView = ({ timelineId }) => {
   const { events, isLoading, error, fetchTimelineEvents, toggleLike } = useEventStore()
@@ -33,8 +34,20 @@ const TimelineView = ({ timelineId }) => {
     )
   }
 
+  // Sort events by date
+  const sortedEvents = [...events].sort((a, b) => new Date(a.date) - new Date(b.date))
+
   return (
     <div className="space-y-6">
+      {/* Timeline Wave Visualization */}
+      <div className="card bg-base-100 shadow-xl p-4">
+        <TimelineWave 
+          events={sortedEvents} 
+          width={window.innerWidth > 768 ? 700 : window.innerWidth - 48}
+          height={200} 
+        />
+      </div>
+
       {/* Timeline Header */}
       {currentTimeline && (
         <div className="card bg-base-100 shadow-xl">
@@ -54,7 +67,7 @@ const TimelineView = ({ timelineId }) => {
       )}
 
       {/* Events List */}
-      {events.map(event => (
+      {sortedEvents.map(event => (
         <div key={event._id} className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <div className="flex justify-between items-start">

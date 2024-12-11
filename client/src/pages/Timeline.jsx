@@ -9,7 +9,14 @@ const Timeline = () => {
   const { currentTimeline, fetchTimelineById, isLoading, error } = useTimelineStore()
 
   useEffect(() => {
-    fetchTimelineById(timelineId)
+    if (timelineId) {
+      fetchTimelineById(timelineId)
+    }
+
+    // Cleanup function to reset currentTimeline when component unmounts
+    return () => {
+      useTimelineStore.setState({ currentTimeline: null })
+    }
   }, [timelineId, fetchTimelineById])
 
   if (isLoading) {
