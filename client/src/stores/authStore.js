@@ -93,6 +93,67 @@ const useAuthStore = create((set) => ({
         })
       }
     }
+  },
+
+  updateUserSettings: async (type, settings) => {
+    set({ isLoading: true, error: null })
+    try {
+      let response;
+      if (type === 'profile') {
+        // Use PUT for profile updates
+        response = await axios.put('/api/users/profile', settings)
+      } else {
+        // Use PATCH for other settings
+        response = await axios.patch(`/api/users/settings/${type}`, settings)
+      }
+      
+      set(state => ({ 
+        user: { ...state.user, ...response.data.user },
+        isLoading: false 
+      }))
+      return true
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.message || 'Failed to update settings', 
+        isLoading: false 
+      })
+      return false
+    }
+  },
+
+  updatePassword: async (currentPassword, newPassword) => {
+    set({ isLoading: true, error: null })
+    try {
+      await axios.post('/api/users/change-password', {
+        currentPassword,
+        newPassword
+      })
+      set({ isLoading: false })
+      return true
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.message || 'Failed to update password', 
+        isLoading: false 
+      })
+      return false
+    }
+  },
+
+  deleteAccount: async (password) => {
+    set({ isLoading: true, error: null })
+    try {
+      await axios.post('/api/users/delete-account', { password })
+      localStorage.removeItem('token')
+      delete axios.defaults.headers.common['Authorization']
+      set({ user: null, isAuthenticated: false, isLoading: false })
+      return true
+    } catch (error) {
+      set({ 
+        error: error.response?.data?.message || 'Failed to delete account', 
+        isLoading: false 
+      })
+      return false
+    }
   }
 }))
 

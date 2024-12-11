@@ -9,6 +9,7 @@ import Create from '../pages/Create'
 import CreateEvent from '../pages/CreateEvent'
 import Timeline from '../pages/Timeline'
 import Messages from '../pages/Messages'
+import Settings from '../pages/Settings'
 import NotFound from '../pages/NotFound'
 
 
@@ -68,6 +69,15 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <CreateEvent />
+          </PrivateRoute>
+        } 
+      />
+
+      <Route 
+        path="/settings" 
+        element={
+          <PrivateRoute>
+            <Settings />
           </PrivateRoute>
         } 
       />

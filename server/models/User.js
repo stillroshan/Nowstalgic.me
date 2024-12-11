@@ -25,6 +25,12 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true, // Allows null values to not conflict with uniqueness
   },
+  displayName: {
+    type: String,
+    default: '',
+    trim: true,
+    maxLength: 30
+  },
   profilePicture: {
     type: String,
     default: ''
@@ -59,6 +65,24 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['user', 'admin'],
     default: 'user',
+  },
+  settings: {
+    notifications: {
+      emailNotifications: { type: Boolean, default: true },
+      pushNotifications: { type: Boolean, default: true },
+      newFollower: { type: Boolean, default: true },
+      newComment: { type: Boolean, default: true },
+      newLike: { type: Boolean, default: true },
+      newMessage: { type: Boolean, default: true },
+      timelineUpdates: { type: Boolean, default: true }
+    },
+    privacy: {
+      defaultVisibility: { type: String, enum: ['public', 'followers', 'private'], default: 'public' },
+      allowTagging: { type: Boolean, default: true },
+      showOnlineStatus: { type: Boolean, default: true },
+      allowMessaging: { type: String, enum: ['everyone', 'followers', 'none'], default: 'everyone' },
+      showTimelines: { type: Boolean, default: true }
+    }
   }
 }, { 
   timestamps: true,
@@ -100,4 +124,4 @@ userSchema.index({ email: 1 });
 userSchema.index({ followers: 1 });
 userSchema.index({ following: 1 });
 
-export default mongoose.model('User', userSchema); 
+export default mongoose.model('User', userSchema);

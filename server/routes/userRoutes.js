@@ -6,7 +6,11 @@ import {
   updateProfile,
   updateProfilePicture,
   deleteProfilePicture,
+  updateSettings,
+  changePassword,
+  deleteAccount
 } from '../controllers/userController.js';
+import { updateProfileRules } from '../middleware/validate.js';
 
 const router = express.Router();
 
@@ -43,5 +47,8 @@ router.put(
   updateProfilePicture
 );
 router.delete('/profile/picture', protect, deleteProfilePicture);
+router.put('/settings/:type', protect, updateProfileRules, updateSettings);
+router.post('/change-password', protect, changePassword);
+router.post('/delete-account', protect, deleteAccount);
 
 export default router; 

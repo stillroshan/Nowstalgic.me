@@ -6,7 +6,8 @@ import {
   FaBell, 
   FaUser,
   FaSearch,
-  FaEnvelope
+  FaEnvelope,
+  FaCog
 } from 'react-icons/fa'
 
 const Sidebar = () => {
@@ -20,6 +21,7 @@ const Sidebar = () => {
     { path: '/messages', icon: FaEnvelope, label: 'Messages' },
     { path: '/notifications', icon: FaBell, label: 'Notifications' },
     { path: '/profile', icon: FaUser, label: 'Profile' },
+    { path: '/settings', icon: FaCog, label: 'Settings' }
   ]
 
   return (
@@ -27,7 +29,7 @@ const Sidebar = () => {
       {/* Logo */}
       <div className="p-5 border-b border-base-300">
         <Link to="/" className="text-2xl font-bold">
-          Nowstalgic
+          Nowstalgic.me
         </Link>
       </div>
 

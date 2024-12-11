@@ -53,6 +53,12 @@ export const updateProfileRules = [
     .withMessage('Password must be at least 8 characters long')
     .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])/)
     .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number'),
+  body('displayName')
+    .optional()
+    .trim()
+    .isLength({ max: 30 })
+    .matches(/^[a-zA-Z0-9]/)
+    .withMessage('Display name cannot exceed 30 characters'),
   body('bio')
     .optional()
     .trim()

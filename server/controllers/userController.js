@@ -1,5 +1,7 @@
 import User from '../models/User.js';
 import cloudinary from '../config/cloudinary.js';
+import { catchAsync } from '../utils/catchAsync.js';
+import bcrypt from 'bcryptjs';
 
 // @desc    Get user profile
 // @route   GET /api/users/profile
@@ -28,6 +30,7 @@ export const updateProfile = async (req, res) => {
 
     // Update basic info
     user.username = req.body.username || user.username;
+    user.displayName = req.body.displayName || user.displayName;
     user.bio = req.body.bio || user.bio;
 
     // Handle email update
@@ -38,12 +41,6 @@ export const updateProfile = async (req, res) => {
       }
       user.email = req.body.email;
       user.isVerified = false;
-      // Here you might want to trigger email verification again
-    }
-
-    // Handle password update
-    if (req.body.password) {
-      user.password = req.body.password;
     }
 
     await user.save();
@@ -54,6 +51,7 @@ export const updateProfile = async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
+        displayName: user.displayName,
         bio: user.bio,
         profilePicture: user.profilePicture,
         isVerified: user.isVerified,
@@ -125,4 +123,68 @@ export const deleteProfilePicture = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}; 
+};
+
+export const updateSettings = catchAsync(async (req, res) => {
+  const { type } = req.params
+  const updates = req.body
+
+  // Validate settings type
+  const allowedTypes = ['notifications', 'privacy']
+  if (!allowedTypes.includes(type)) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid settings type'
+    })
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { [`settings.${type}`]: updates },
+    { new: true, runValidators: true }
+  )
+
+  res.json({
+    status: 'success',
+    user
+  })
+})
+
+export const changePassword = catchAsync(async (req, res) => {
+  const { currentPassword, newPassword } = req.body
+  const user = await User.findById(req.user._id).select('+password')
+
+  if (!(await bcrypt.compare(currentPassword, user.password))) {
+    return res.status(401).json({
+      status: 'error',
+      message: 'Current password is incorrect'
+    })
+  }
+
+  user.password = newPassword
+  await user.save()
+
+  res.json({
+    status: 'success',
+    message: 'Password updated successfully'
+  })
+})
+
+export const deleteAccount = catchAsync(async (req, res) => {
+  const { password } = req.body
+  const user = await User.findById(req.user._id).select('+password')
+
+  if (!(await bcrypt.compare(password, user.password))) {
+    return res.status(401).json({
+      status: 'error',
+      message: 'Password is incorrect'
+    })
+  }
+
+  await User.findByIdAndDelete(req.user._id)
+
+  res.json({
+    status: 'success',
+    message: 'Account deleted successfully'
+  })
+}) 
