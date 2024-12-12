@@ -35,8 +35,9 @@ const timelineSchema = new mongoose.Schema({
     }]
 }, { timestamps: true });
 
-// Add index for better query performance
+// Keep only essential indexes
 timelineSchema.index({ user: 1, visibility: 1 });
-timelineSchema.index({ tags: 1 });
+timelineSchema.index({ tags: 1, createdAt: -1 });
+timelineSchema.index({ createdAt: -1 });
 
 export default mongoose.model('Timeline', timelineSchema);

@@ -119,9 +119,9 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 };
 
 // Indexes for better query performance
-userSchema.index({ username: 1 });
-userSchema.index({ email: 1 });
-userSchema.index({ followers: 1 });
-userSchema.index({ following: 1 });
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ username: 1 }, { unique: true });
+userSchema.index({ followers: 1, following: 1 });
+userSchema.index({ createdAt: -1 });
 
 export default mongoose.model('User', userSchema);

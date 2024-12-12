@@ -11,6 +11,7 @@ import Timeline from '../pages/Timeline'
 import Messages from '../pages/Messages'
 import Settings from '../pages/Settings'
 import NotFound from '../pages/NotFound'
+import Search from '../pages/Search'
 
 
 const AppRoutes = () => {
@@ -70,6 +71,13 @@ const AppRoutes = () => {
           <PrivateRoute>
             <CreateEvent />
           </PrivateRoute>
+        } 
+      />
+
+      <Route 
+        path="/search" 
+        element={
+          <Search />
         } 
       />
 

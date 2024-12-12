@@ -1,23 +1,24 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { BiSearch } from 'react-icons/bi'
 import useSearchStore from '../stores/searchStore'
 import { useDebounce } from '../hooks/useDebounce'
 
 const SearchBar = () => {
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const debouncedQuery = useDebounce(query, 300)
-  const { searchResults, isLoading, searchUsers, clearResults } = useSearchStore()
+  const { suggestions, isLoading, getSuggestions, clearResults } = useSearchStore()
   const searchRef = useRef(null)
 
   useEffect(() => {
     if (debouncedQuery) {
-      searchUsers(debouncedQuery)
+      getSuggestions(debouncedQuery)
     } else {
       clearResults()
     }
-  }, [debouncedQuery, searchUsers, clearResults])
+  }, [debouncedQuery, getSuggestions, clearResults])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -30,13 +31,22 @@ const SearchBar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (query.trim()) {
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`)
+      setIsOpen(false)
+      setQuery('')
+    }
+  }
+
   return (
     <div className="relative" ref={searchRef}>
-      <div className="form-control">
+      <form onSubmit={handleSubmit} className="form-control">
         <div className="input-group">
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder="Search users, timelines, events..."
             className="input input-bordered w-64"
             value={query}
             onChange={(e) => {
@@ -45,11 +55,11 @@ const SearchBar = () => {
             }}
             onFocus={() => setIsOpen(true)}
           />
-          <button className="btn btn-square">
+          <button type="submit" className="btn btn-square">
             <BiSearch className="h-5 w-5" />
           </button>
         </div>
-      </div>
+      </form>
 
       {isOpen && (query || isLoading) && (
         <div className="absolute mt-1 w-full bg-base-100 rounded-box shadow-lg z-50">
@@ -57,9 +67,9 @@ const SearchBar = () => {
             <div className="p-4 text-center">
               <span className="loading loading-spinner loading-sm" />
             </div>
-          ) : searchResults.length > 0 ? (
+          ) : suggestions.length > 0 ? (
             <div className="py-2">
-              {searchResults.map(user => (
+              {suggestions.map(user => (
                 <Link
                   key={user._id}
                   to={`/profile/${user._id}`}

@@ -18,6 +18,7 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import timelineRoutes from './routes/timelineRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
+import searchRoutes from './routes/searchRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import { uploadErrorHandler } from './middleware/errorHandler.js';
@@ -91,6 +92,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/timelines', timelineRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/search', searchRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 

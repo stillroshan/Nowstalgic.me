@@ -84,9 +84,10 @@ const eventSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Add indexes for cbetter query performance
+// Keep only essential indexes
 eventSchema.index({ timeline: 1, date: -1 });
-eventSchema.index({ 'tags.user': 1 });
-eventSchema.index({ category: 1 });
+eventSchema.index({ 'tags.user': 1, category: 1 });
+eventSchema.index({ visibility: 1, createdAt: -1 });
+eventSchema.index({ createdAt: -1 });
 
 export default mongoose.model('Event', eventSchema);
